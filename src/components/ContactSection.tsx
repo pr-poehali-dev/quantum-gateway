@@ -2,6 +2,7 @@ import { useState, FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
 
 interface FormData {
   name: string;
@@ -10,15 +11,51 @@ interface FormData {
 }
 
 export function ContactSection() {
+  const { toast } = useToast();
   const [formData, setFormData] = useState<FormData>({
     name: "",
     email: "",
     message: "",
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    console.log("Форма отправлена:", formData);
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch('https://functions.poehali.dev/36599752-a9c3-4951-a64a-e176e37ebb62', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast({
+          title: "Успех!",
+          description: "Ваша заявка отправлена. Мы свяжемся с вами в ближайшее время!",
+        });
+        setFormData({ name: "", email: "", message: "" });
+      } else {
+        toast({
+          title: "Ошибка",
+          description: data.error || "Не удалось отправить заявку. Позвоните по телефону.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Ошибка сети",
+        description: "Проверьте интернет или позвоните нам: +7 (903) 565-60-27",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -86,8 +123,8 @@ export function ContactSection() {
               />
             </div>
 
-            <Button type="submit" className="w-full" size="lg">
-              Отправить запрос
+            <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
+              {isSubmitting ? "Отправляем..." : "Отправить запрос"}
             </Button>
             
             <p className="text-sm text-muted-foreground text-center">
